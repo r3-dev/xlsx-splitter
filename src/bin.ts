@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-import fs from 'node:fs/promises'
+import fs, { constants } from 'node:fs/promises'
 import path from 'node:path'
 import xlsx from 'node-xlsx'
 import yargs from 'yargs'
 import { hideBin } from 'yargs/helpers'
 
-const argv = await yargs(hideBin(process.argv))
+const args = await yargs(hideBin(process.argv))
   .option('file', {
     alias: 'f',
     type: 'string',
@@ -24,49 +24,82 @@ const argv = await yargs(hideBin(process.argv))
     demandOption: true,
     description: 'max number of rows to split'
   })
-  .parse()
-
-let fileCount = 0
-let tableHead: string[] = []
-let tableBody: string[][] = []
-
-const xlsxFile = await fs.readFile(path.resolve(argv.file))
-const workSheetsFromBuffer = xlsx.parse(xlsxFile)
-
-for (const worksheet of workSheetsFromBuffer) {
-  for (const worksheetKey in worksheet.data) {
-    const data = worksheet.data[worksheetKey]
-    if (!data || !data.length) continue
-
-    if (worksheetKey === '0') {
-      tableHead.push(...data)
-    } else {
-      tableBody.push(data)
+  .check(async (args) => {
+    if (Number.isNaN(args.rows)) {
+      throw new Error('Argument "--rows" must be a number.')
     }
 
-    if (tableBody.length === argv.rows) {
-      await writeFile()
+    try {
+      const stat = await fs.stat(args.file)
+
+      if (!stat.isFile()) {
+        throw new Error('Argument "--file" is directory. Expected .xlsx file.')
+      }
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        throw new Error(`File not found: ${args.file}`)
+      }
+
+      throw err
+    }
+
+    try {
+      await fs.access(args.output, constants.W_OK)
+    } catch {
+      throw new Error(`Output directory is not writable: ${args.output}`)
+    }
+
+    return true
+  })
+  .parse()
+
+console.log(`Parsing file: ${args.file}`)
+console.log(`Splitting rows: ${args.rows}\n`)
+
+const fileName = path.basename(args.file, '.xlsx')
+const excelFile = await fs.readFile(path.resolve(args.file))
+const parsedExcelFile = xlsx.parse(excelFile)
+
+let fileCount = 0
+const tableHead: string[] = []
+const tableBody: string[][] = []
+
+for (const excelPage of parsedExcelFile) {
+  for (const row of excelPage.data) {
+    if (!row || !row.length) continue
+
+    if (!tableHead.length) {
+      tableHead.push(...row)
+    } else {
+      tableBody.push(row)
+    }
+
+    if (tableBody.length === args.rows) {
+      await createExcelFile()
     }
   }
 }
 
 if (tableBody.length > 0) {
-  await writeFile()
+  await createExcelFile()
 }
 
-async function writeFile() {
-  const buffer = xlsx.build([
+console.log(`\nOutput directory: ${path.resolve(args.output)}`)
+
+async function createExcelFile(): Promise<void> {
+  const data = xlsx.build([
     {
-      name: path.basename(argv.file),
+      name: fileName,
       data: [tableHead, ...tableBody],
       options: {}
     }
   ])
 
-  tableBody = []
-  const filePath = path.resolve(
-    argv.output,
-    path.basename(argv.file, '.xlsx') + `-${++fileCount}.xlsx`
-  )
-  await fs.writeFile(filePath, buffer)
+  // clear array
+  tableBody.length = 0
+
+  const name = fileName + `-${++fileCount}.xlsx`
+  const outputFilePath = path.resolve(args.output, name)
+  await fs.writeFile(outputFilePath, data)
+  console.log(`File created: ${name}`)
 }
