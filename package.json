@@ -1,6 +1,6 @@
 {
   "name": "@r3-dev/xlsx-splitter",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "type": "module",
   "bin": {
     "xlsx-splitter": "./dist/bin.js"
