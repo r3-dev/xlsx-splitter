@@ -87,6 +87,9 @@ const tableBody: string[][] = []
 
 for (const excelPage of parsedExcelFile) {
   const rows = excelPage.data
+  // clear array
+  tableHead.length = 0
+
   for (const rowKey in rows) {
     const rowIndex = Number(rowKey)
     const row = rows[rowIndex]
@@ -104,10 +107,11 @@ for (const excelPage of parsedExcelFile) {
   }
 }
 
-if (tableBody.length > 0) {
-  await createExcelFile()
+if (tableBody.length > 0 && fileCount === 0) {
+  exit('No data to split.')
 }
 
+await createExcelFile()
 console.log(`\nOutput directory: ${path.resolve(args.output)}`)
 
 async function createExcelFile(): Promise<void> {
