@@ -1,4 +1,4 @@
-package xlsx
+package xlsxParser
 
 import (
 	"fmt"
@@ -78,7 +78,10 @@ func (xlsxParser *XlsxParser) createXlsxFile(sheetName string) {
 	fileName := strings.Replace(xlsxParser.fileName, ".xlsx", "", 1) + "-" + fmt.Sprint(xlsxParser.fileCount) + ".xlsx"
 	filePath := filepath.Join(xlsxParser.outputPath, fileName)
 	fmt.Println("Creating file:", filePath)
-	xlsxFile.Save(filePath)
+	err = xlsxFile.Save(filePath)
+	if err != nil {
+		panic(err)
+	}
 
 	xlsxParser.tableBody = nil
 }

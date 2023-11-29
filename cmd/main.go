@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 	"os"
-	xlsx "xlsx-splitter/internal"
+	"xlsx-splitter/internal/utils"
+	xlsxParser "xlsx-splitter/internal/xlsx-parser"
 
 	"github.com/urfave/cli/v2"
 )
@@ -21,6 +22,7 @@ func main() {
 				Aliases:  []string{"f"},
 				Usage:    "xlsx file path",
 				Required: true,
+				Action:   utils.ValidateXlsxFile,
 			},
 			&cli.IntFlag{
 				Name:     "rows",
@@ -33,12 +35,14 @@ func main() {
 				Aliases:  []string{"o"},
 				Usage:    "output folder path",
 				Required: false,
+				Action:   utils.ValidateOutputPath,
 			},
 			&cli.IntFlag{
 				Name:     "offset",
 				Aliases:  []string{"s"},
 				Usage:    "offset row number",
 				Required: false,
+				Action:   utils.ValidateOffset,
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -51,7 +55,7 @@ func main() {
 				output = cwd
 			}
 
-			xlsxParser := xlsx.New(file, output)
+			xlsxParser := xlsxParser.New(file, output)
 			xlsxParser.ReadTable(rows, offset)
 
 			return nil
