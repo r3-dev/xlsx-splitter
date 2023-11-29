@@ -42,7 +42,6 @@ func main() {
 				Aliases:  []string{"s"},
 				Usage:    "offset row number",
 				Required: false,
-				Action:   utils.ValidateOffset,
 			},
 		},
 		Action: func(c *cli.Context) error {

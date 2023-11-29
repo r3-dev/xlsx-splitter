@@ -31,16 +31,25 @@ func New(fileName, outputPath string) *XlsxParser {
 }
 
 func (xlsxParser *XlsxParser) ReadTable(rows int, offset int) {
-	for _, sheet := range xlsxParser.workbox.Sheets[offset:] {
-		sheet.ForEachRow(func(r *xlsx.Row) error {
-			if r.GetCoordinate() == 0 {
-				xlsxParser.tableHead = r
-			} else {
-				xlsxParser.tableBody = append(xlsxParser.tableBody, r)
+	for _, sheet := range xlsxParser.workbox.Sheets {
+		if rows+offset > sheet.MaxRow {
+			fmt.Printf(`Sheet "%s" has only %d rows.`, sheet.Name, sheet.MaxRow)
+			continue
+		}
+
+		sheet.ForEachRow(func(row *xlsx.Row) error {
+			coord := row.GetCoordinate()
+
+			if offset == coord {
+				xlsxParser.tableHead = row
+			}
+
+			if xlsxParser.tableHead != nil {
+				xlsxParser.tableBody = append(xlsxParser.tableBody, row)
 			}
 
 			if len(xlsxParser.tableBody) == rows {
-				xlsxParser.createXlsxFile(r.Sheet.Name)
+				xlsxParser.createXlsxFile(row.Sheet.Name)
 			}
 
 			return nil
