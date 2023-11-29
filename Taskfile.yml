@@ -1,0 +1,8 @@
+version: '3'
+
+tasks:
+  build:
+    preconditions:
+      - CGO_ENABLED=0 go build -ldflags="-s -w" -o ./xlsx-splitter.bin ./cmd
+    cmds:
+      - upx -9 ./xlsx-splitter.bin
